@@ -1,0 +1,1 @@
+python main.py --backdoor cutmix_not_target --lr 0.1 --net_type wide-resnet --depth 28 --widen_factor 10 --dropout 0.3 --dataset cifar100
