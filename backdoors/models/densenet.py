@@ -1,9 +1,9 @@
 from collections import OrderedDict
-
 import torch
 from torch import nn
 import torch.nn.functional as F
 
+# https://github.com/amurthy1/dagan_torch/blob/master/discriminator.py
 
 class _LayerNorm(nn.Module):
     def __init__(self, num_features, img_size):
@@ -28,7 +28,6 @@ class _LayerNorm(nn.Module):
         out = out * self.weight + self.bias
         return out
 
-
 class _SamePad(nn.Module):
     """
     Pads equivalent to the behavior of tensorflow "SAME"
@@ -42,7 +41,6 @@ class _SamePad(nn.Module):
         if self.stride == 2 and x.shape[2] % 2 == 0:
             return F.pad(x, (0, 1, 0, 1))
         return F.pad(x, (1, 1, 1, 1))
-
 
 def _conv2d(
     in_channels,
@@ -65,7 +63,6 @@ def _conv2d(
     if dropout > 0.0:
         layers["dropout"] = nn.Dropout(dropout)
     return nn.Sequential(layers)
-
 
 class _EncoderBlock(nn.Module):
     def __init__(
@@ -134,9 +131,8 @@ class _EncoderBlock(nn.Module):
             all_outputs.append(out)
         return all_outputs[-2], all_outputs[-1]
 
-
-class Discriminator(nn.Module):
-    def __init__(self, dim, channels, dropout_rate=0.0, z_dim=100):
+class DenseNet(nn.Module):
+    def __init__(self, dim, channels, dropout_rate=0.5, z_dim=100):
         super().__init__()
         self.dim = dim
         self.z_dim = z_dim
@@ -144,15 +140,12 @@ class Discriminator(nn.Module):
         self.layer_sizes = [64, 64, 128, 128]
         self.num_inner_layers = 5
 
-        # Number of times dimension is halved
         self.depth = len(self.layer_sizes)
 
-        # dimension at each level of U-net
         self.dim_arr = [dim]
         for i in range(self.depth):
             self.dim_arr.append((self.dim_arr[-1] + 1) // 2)
 
-        # Encoders
         self.encode0 = _conv2d(
             in_channels=self.channels,
             out_channels=self.layer_sizes[0],

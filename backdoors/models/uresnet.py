@@ -1,9 +1,9 @@
 from collections import OrderedDict
-
 import torch
 from torch import nn
 import torch.nn.functional as F
 
+# https://github.com/amurthy1/dagan_torch/blob/master/generator.py
 
 class _SamePad(nn.Module):
     """
@@ -32,7 +32,6 @@ def _conv2d(in_channels, out_channels, kernel_size, stride, activate=True, dropo
         layers["dropout"] = nn.Dropout(dropout)
     return nn.Sequential(layers)
 
-
 def _conv2d_transpose(
     in_channels, out_channels, kernel_size, upscale_size, activate=True, dropout=0.0
 ):
@@ -48,7 +47,6 @@ def _conv2d_transpose(
     if dropout > 0.0:
         layers["dropout"] = nn.Dropout(dropout)
     return nn.Sequential(layers)
-
 
 class _EncoderBlock(nn.Module):
     def __init__(
@@ -105,7 +103,6 @@ class _EncoderBlock(nn.Module):
             out = module(input_features)
             all_outputs.append(out)
         return all_outputs[-2], all_outputs[-1]
-
 
 class _DecoderBlock(nn.Module):
     def __init__(
@@ -180,9 +177,8 @@ class _DecoderBlock(nn.Module):
             all_outputs.append(out)
         return all_outputs[-2], all_outputs[-1]
 
-
-class Generator(nn.Module):
-    def __init__(self, dim, channels, dropout_rate=0.0, z_dim=100):
+class UResNet(nn.Module):
+    def __init__(self, dim, channels, dropout_rate=0.5, z_dim=100):
         super().__init__()
         self.dim = dim
         self.z_dim = z_dim
@@ -190,17 +186,14 @@ class Generator(nn.Module):
         self.layer_sizes = [64, 64, 128, 128]
         self.num_inner_layers = 3
 
-        # Number of times dimension is halved
         self.U_depth = len(self.layer_sizes)
 
-        # dimension at each level of U-net
         self.dim_arr = [dim]
         for i in range(self.U_depth):
             self.dim_arr.append((self.dim_arr[-1] + 1) // 2)
 
-        # Encoders
         self.encode0 = _conv2d(
-            in_channels=1, out_channels=self.layer_sizes[0], kernel_size=3, stride=2
+            in_channels=channels, out_channels=self.layer_sizes[0], kernel_size=3, stride=2
         )
         for i in range(1, self.U_depth):
             self.add_module(
@@ -214,12 +207,11 @@ class Generator(nn.Module):
                 ),
             )
 
-        # Noise encoders
         self.noise_encoders = 3
         num_noise_filters = 8
         self.z_channels = []
         for i in range(self.noise_encoders):
-            curr_dim = self.dim_arr[-1 - i]  # Iterate dim from back
+            curr_dim = self.dim_arr[-1 - i]
             self.add_module(
                 "z_reshape%d" % i,
                 nn.Linear(self.z_dim, curr_dim * curr_dim * num_noise_filters),
@@ -227,15 +219,11 @@ class Generator(nn.Module):
             self.z_channels.append(num_noise_filters)
             num_noise_filters //= 2
 
-        # Decoders
         for i in range(self.U_depth + 1):
-            # Input from previous decoder
             in_channels = 0 if i == 0 else self.layer_sizes[-i]
-            # Input from encoder across the "U"
             in_channels += (
                 self.channels if i == self.U_depth else self.layer_sizes[-i - 1]
             )
-            # Input from injected noise
             if i < self.noise_encoders:
                 in_channels += self.z_channels[i]
 
@@ -254,7 +242,6 @@ class Generator(nn.Module):
                 ),
             )
 
-        # Final conv
         self.num_final_conv = 3
         for i in range(self.num_final_conv - 1):
             self.add_module(
@@ -279,10 +266,8 @@ class Generator(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, x, z):
-        # Final output of every encoding block
         all_outputs = [x, self.encode0(x)]
 
-        # Last 2 layer outputs
         out = [x, self.encode0(x)]
         for i in range(1, len(self.layer_sizes)):
             out = self._modules["encode%d" % i](out)

@@ -1,0 +1,35 @@
+name: backdoor_1
+attacks:
+    standard:
+        seeds: [0, 1, 2]
+        test_without_backdoor: True
+        datasets: [mnist, cifar10, cifar100]
+        backdoors:
+            - name: plus
+            - name: flip
+            - name: gaussian_blur
+            - name: translate
+              vector: [5, 0]
+            - name: translate
+              vector: [-10, 0]
+            - name: rotate
+              angle: 30
+            - name: rotate
+              angle: -45
+            - name: invert
+            - name: cutmix_target
+            - name: cutmix_not_target
+        classifier:
+            models: [MNISTCNN, ResNet50, ResNet50]
+            aug_transforms:
+                mnist:
+                    train: mnist_train
+                    test: mnist_test
+                cifar10:
+                    train: cifar10_train
+                    test: cifar10_test
+            batch_sizes: [4096, 128, 128]
+            lrs: [2.e-3, 5.e-4, 1.e-3]
+            max_epochs: 300
+            num_gpus: 4
+            num_workers: 0  # causes bad file descriptor?
