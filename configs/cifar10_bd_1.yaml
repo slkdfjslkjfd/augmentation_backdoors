@@ -1,0 +1,18 @@
+name: backdoor_1
+attacks:
+    standard:
+        seeds: [0]
+        test_without_backdoor: True
+        datasets: [cifar10]
+        backdoors: []
+        classifier:
+            models: [ResNet50]
+            aug_transforms:
+                cifar10:
+                    train: cifar10_train
+                    test: cifar10_test
+            batch_sizes: [128]
+            lrs: [5.e-4]
+            max_epochs: 300
+            num_gpus: 4
+            num_workers: 0

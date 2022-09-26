@@ -1,0 +1,4 @@
+backdoors/datasets/data/
+lightning_logs/version_*
+*__pycache__*
+*.pyc
