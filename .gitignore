@@ -1,4 +1,7 @@
-backdoors/datasets/data/
-lightning_logs/version_*
-*__pycache__*
-*.pyc
+datasets/*
+def/*
+checkpoints/*
+!*readme.txt
+*.DS_Store
+.ipynb_checkpoints*
+__pycache__*
